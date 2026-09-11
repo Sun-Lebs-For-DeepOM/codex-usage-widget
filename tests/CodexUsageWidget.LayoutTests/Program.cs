@@ -100,6 +100,19 @@ internal static class Program
             ((System.Windows.Documents.Run)window.FindName("PrimaryRingPercentRun")).Text = "99";
             ((System.Windows.Documents.Run)window.FindName("SecondaryRingPercentRun")).Text = "85";
             window.UpdateResponsiveLayout();
+            if (args.Contains("--readme"))
+            {
+                foreach (var (name, value) in new[] {
+                    ("RegularInputTokenText", "888.4M"), ("CachedInputTokenText", "16.31B"),
+                    ("VisibleOutputTokenText", "68.8M"), ("ReasoningOutputTokenText", "32.8M"),
+                    ("StatusText", "合成数据 · 功能示意"), ("PlanText", "DEMO"),
+                    ("PrimaryResetText", "重置：2小时 59分"), ("SecondaryResetText", "重置：4天 23小时"),
+                    ("TokenEstimateNoteText", "示例金额用于展示界面，不代表实际账单") })
+                    ((TextBlock)window.FindName(name)).Text = value;
+                var distribution = ((Grid)window.FindName("TokenDistributionGrid")).ColumnDefinitions;
+                var counts = new[] { 888.4, 16310, 68.8, 32.8 };
+                for (var i = 0; i < counts.Length; i++) distribution[i].Width = new GridLength(counts[i], GridUnitType.Star);
+            }
             var root = (FrameworkElement)window.Content;
             root.Measure(new Size(width, height));
             root.Arrange(new Rect(0, 0, width, height));
@@ -137,6 +150,8 @@ internal static class Program
             encoder.Frames.Add(BitmapFrame.Create(image));
             using var stream = File.Create($"preview-{width}x{height}.png");
             encoder.Save(stream);
+            if (args.Contains("--readme"))
+                SavePreview(root, width, height, $"readme-{width}x{height}-{(light ? "light" : "dark")}.png");
             if (window.Opacity != 1) throw new Exception("Text opacity changed");
             if (!Descendants(root).OfType<TextBlock>().Any(t => t.Text == "重置卡 0" && VisibleInTree(t, root))) throw new Exception("Reset-card count disappeared");
             if (window.ViewStyle == WidgetViewStyle.Ring)
@@ -149,6 +164,7 @@ internal static class Program
                 if (!Descendants(root).OfType<TextBlock>().Any(t => t.Text == "重置卡 0" && VisibleInTree(t, root))) throw new Exception("Reset-card count disappeared in single quota mode");
                 if (width == 300 && height == 240)
                 {
+                    if (args.Contains("--readme") && light) SavePreview(root, width, height, "readme-single-quota.png");
                     var singleImage = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32); singleImage.Render(root);
                     var singleEncoder = new PngBitmapEncoder(); singleEncoder.Frames.Add(BitmapFrame.Create(singleImage));
                     using var singleStream = File.Create("preview-single-quota.png"); singleEncoder.Save(singleStream);
@@ -160,6 +176,32 @@ internal static class Program
             if ((width < 300 || height < 240) != (window.SmallWindowScale < 1)) throw new Exception("Small-window threshold regression");
             Console.WriteLine($"PASS {width}x{height}: corner alignment, bounded fonts >=11, opaque text, rendered");
         }
+        if (args.Contains("--readme"))
+        {
+            var settingsPreview = new AppearanceWindow(window);
+            if (settingsPreview.Content is Panel settingsPanel) settingsPanel.Background = settingsPreview.Background;
+            SavePreview((FrameworkElement)settingsPreview.Content, 430, 660, "readme-settings.png", settingsPreview.Background);
+            settingsPreview.Close();
+        }
+    }
+
+    static void SavePreview(FrameworkElement root, int width, int height, string filename, Brush? background = null)
+    {
+        root.Measure(new Size(width, height));
+        root.Arrange(new Rect(0, 0, width, height));
+        root.UpdateLayout();
+        var bitmap = new RenderTargetBitmap(width * 2, height * 2, 192, 192, PixelFormats.Pbgra32);
+        if (background is not null)
+        {
+            var backdrop = new DrawingVisual();
+            using (var drawing = backdrop.RenderOpen()) drawing.DrawRectangle(background, null, new Rect(0, 0, width, height));
+            bitmap.Render(backdrop);
+        }
+        bitmap.Render(root);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var output = File.Create(filename);
+        encoder.Save(output);
     }
 
     static IEnumerable<DependencyObject> Descendants(DependencyObject parent)

@@ -6,6 +6,43 @@
 
 版本变化见 [CHANGELOG.md](./CHANGELOG.md)。
 
+## 当前功能示意
+
+以下图片由当前版本的真实 WPF 控件以合成数据渲染，使用 2 倍分辨率便于查看细节。额度、Token、金额及时间均为示例，不是用户使用记录；示例金额用于展示排版，不用于核验价格计算。
+
+### 双层圆环与卡片视图
+
+外圈显示剩余额度，青色内圈显示周期剩余时间，图例位于圆环区域下方。完整统计面板同时展示四类 Token、Standard 等价金额和独立的档位估算；也可切换为卡片视图。
+
+<table>
+  <tr><th>双层圆环 · 完整统计</th><th>卡片视图 · 窄窗口重排</th></tr>
+  <tr>
+    <td valign="top"><img src="./design/current-rings.png" width="460" alt="双层额度与时间圆环，下方为完整 Token 分类和两种金额估算" /></td>
+    <td valign="top"><img src="./design/current-cards.png" width="300" alt="窄高窗口中的纵向额度卡片和重新排列的 Token 统计" /></td>
+  </tr>
+</table>
+
+### 缩小仍保留 Token，也可只看周额度
+
+紧凑布局保留额度圆环、重置时间、图例、Token 总量、主金额和重置卡；关闭五小时组件后，周额度独立居中。窄高窗口可纵向排列，支持深色外观。
+
+<table>
+  <tr><th>紧凑双周期</th><th>仅显示周额度</th><th>窄高 · 深色</th></tr>
+  <tr>
+    <td valign="top"><img src="./design/current-compact.png" width="300" alt="300 × 240 DIP 紧凑窗口，保留双层圆环、Token 与金额" /></td>
+    <td valign="top"><img src="./design/current-weekly.png" width="300" alt="关闭五小时额度后，七天双层圆环居中显示" /></td>
+    <td valign="top"><img src="./design/current-narrow-dark.png" width="150" alt="150 × 300 DIP 深色窄高窗口，圆环上下排列" /></td>
+  </tr>
+</table>
+
+图片可能随 GitHub 页面宽度缩放，上述标注为程序窗口的逻辑尺寸。
+
+### 显示内容、尺寸、透明度与颜色可调
+
+在外观设置中切换环形／卡片、五小时额度和 Token 面板，选择累积周期，并独立调整背景与文字不透明度。宽高、强调色与背景色也可自行设置。
+
+<img src="./design/current-settings.png" width="430" alt="外观设置：显示选项、统计周期、宽高、独立背景与文字不透明度及自定义颜色" />
+
 <details>
 <summary>早期设计预览（非当前版本截图）</summary>
 
@@ -85,6 +122,14 @@ dotnet run --project .\tests\CodexUsageWidget.LayoutTests\CodexUsageWidget.Layou
 ```
 
 布局测试在 Windows 桌面会话中运行，使用合成数据验证尺寸切换、时间内圈、显示开关、重置卡和不透明度设置；预览 PNG 写入测试的 `bin` 输出目录，不上传真实使用记录。
+
+为 README 生成当前控件的高清合成数据示意图，可运行：
+
+```powershell
+dotnet run --project .\tests\CodexUsageWidget.LayoutTests\CodexUsageWidget.LayoutTests.csproj -c Release -- --readme
+```
+
+输出位于测试的 `bin\Release\net8.0-windows\previews\readme-*.png`，首页使用的选图保存在 `design/current-*.png`。
 
 `发布.ps1` 默认生成依赖本机 .NET 8 Desktop Runtime 的小体积单文件。若要发给未安装 .NET 8 的 Windows 电脑：
 
