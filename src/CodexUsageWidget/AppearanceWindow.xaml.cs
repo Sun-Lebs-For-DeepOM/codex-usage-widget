@@ -29,13 +29,15 @@ public partial class AppearanceWindow : Window
     private void SynchronizeFromOwner()
     {
         _synchronizing = true;
-        WidthSlider.Value = Math.Clamp(_owner.ActualWidth > 0 ? _owner.ActualWidth : _owner.Width, 160, 720);
-        HeightSlider.Value = Math.Clamp(_owner.ActualHeight > 0 ? _owner.ActualHeight : _owner.Height, 120, 520);
-        OpacitySlider.Value = Math.Clamp(_owner.Opacity * 100, 50, 100);
+        WidthSlider.Value = Math.Clamp(_owner.ActualWidth > 0 ? _owner.ActualWidth : _owner.Width, _owner.MinWidth, _owner.MaxWidth);
+        HeightSlider.Value = Math.Clamp(_owner.ActualHeight > 0 ? _owner.ActualHeight : _owner.Height, _owner.MinHeight, _owner.MaxHeight);
+        OpacitySlider.Value = Math.Clamp(_owner.BackgroundOpacity * 100, 0, 100);
+        TextOpacitySlider.Value = _owner.TextOpacity * 100;
         AccentHexTextBox.Text = _owner.AccentColorHex;
         BackgroundHexTextBox.Text = _owner.BackgroundColorHex;
         SelectComboItem(ViewStyleComboBox, _owner.ViewStyle.ToString());
         ShowTokenUsageCheckBox.IsChecked = _owner.ShowTokenUsage;
+        ShowPrimaryQuotaCheckBox.IsChecked = _owner.ShowPrimaryQuota;
         SelectComboItem(TokenPeriodComboBox, _owner.TokenPeriod.ToString());
         CustomStartDatePicker.SelectedDate = _owner.CustomStartDate;
         CustomEndDatePicker.SelectedDate = _owner.CustomEndDate;
@@ -171,10 +173,23 @@ public partial class AppearanceWindow : Window
         }
 
         _synchronizing = true;
-        WidthSlider.Value = Math.Clamp(e.NewSize.Width, 160, 720);
-        HeightSlider.Value = Math.Clamp(e.NewSize.Height, 120, 520);
+        WidthSlider.Value = Math.Clamp(e.NewSize.Width, _owner.MinWidth, _owner.MaxWidth);
+        HeightSlider.Value = Math.Clamp(e.NewSize.Height, _owner.MinHeight, _owner.MaxHeight);
         UpdateValueLabels();
         _synchronizing = false;
+    }
+
+    internal void SynchronizePrimaryVisibility()
+    {
+        var previous = _synchronizing;
+        _synchronizing = true;
+        ShowPrimaryQuotaCheckBox.IsChecked = _owner.ShowPrimaryQuota;
+        _synchronizing = previous;
+    }
+
+    private void ShowPrimaryQuotaCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!_synchronizing) _owner.SetPrimaryQuotaVisible(ShowPrimaryQuotaCheckBox.IsChecked == true);
     }
 
     private void SizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -219,6 +234,14 @@ public partial class AppearanceWindow : Window
         WidthValueText.Text = $"{WidthSlider.Value:0} px";
         HeightValueText.Text = $"{HeightSlider.Value:0} px";
         OpacityValueText.Text = $"{OpacitySlider.Value:0}%";
+        if (TextOpacityValueText is not null) TextOpacityValueText.Text = $"{TextOpacitySlider.Value:0}%";
+    }
+
+    private void TextOpacitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_synchronizing) return;
+        _owner.ApplyTextOpacity(TextOpacitySlider.Value / 100);
+        UpdateValueLabels();
     }
 
     private void AccentSwatch_Click(object sender, RoutedEventArgs e)
@@ -277,6 +300,7 @@ public partial class AppearanceWindow : Window
 
     private void Reset_Click(object sender, RoutedEventArgs e)
     {
+        _owner.ApplyTextOpacity(1);
         _owner.ApplyAppearance(230, 244, 1.0, "#10A37F", "#191C23");
         _owner.ApplyDisplayOptions(
             WidgetViewStyle.Ring,

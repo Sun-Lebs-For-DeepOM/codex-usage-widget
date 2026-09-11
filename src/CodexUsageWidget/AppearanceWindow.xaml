@@ -229,6 +229,9 @@
                     <ComboBoxItem Tag="Ring" Content="环形视图" />
                 </ComboBox>
             </Grid>
+            <CheckBox x:Name="ShowPrimaryQuotaCheckBox" Content="显示 5 小时额度"
+                      Style="{StaticResource SettingsCheckBox}" Margin="0,6,0,6"
+                      Checked="ShowPrimaryQuotaCheckBox_Changed" Unchecked="ShowPrimaryQuotaCheckBox_Changed" />
             <CheckBox x:Name="ShowTokenUsageCheckBox"
                       Margin="76,2,0,9"
                       IsChecked="True"
@@ -288,7 +291,7 @@
                 <TextBlock VerticalAlignment="Center" Foreground="{StaticResource SettingsMuted}" Text="宽度" />
                 <Slider x:Name="WidthSlider"
                         Grid.Column="1"
-                        Minimum="160"
+                        Minimum="150"
                         Maximum="720"
                         SmallChange="4"
                         LargeChange="20"
@@ -309,7 +312,7 @@
                 <Slider x:Name="HeightSlider"
                         Grid.Column="1"
                         Minimum="120"
-                        Maximum="520"
+                        Maximum="900"
                         SmallChange="4"
                         LargeChange="20"
                         ValueChanged="SizeSlider_ValueChanged" />
@@ -321,14 +324,14 @@
             </Grid>
             <Grid Margin="0,4,0,18">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="62" />
+                    <ColumnDefinition Width="88" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="58" />
                 </Grid.ColumnDefinitions>
-                <TextBlock VerticalAlignment="Center" Foreground="{StaticResource SettingsMuted}" Text="透明度" />
+                <TextBlock VerticalAlignment="Center" Foreground="{StaticResource SettingsMuted}" Text="背景不透明度" />
                 <Slider x:Name="OpacitySlider"
                         Grid.Column="1"
-                        Minimum="50"
+                        Minimum="0"
                         Maximum="100"
                         SmallChange="1"
                         LargeChange="5"
@@ -340,10 +343,22 @@
                            Foreground="{StaticResource SettingsMuted}" />
             </Grid>
 
-            <TextBlock FontSize="12"
-                       FontWeight="SemiBold"
-                       Foreground="{StaticResource SettingsText}"
-                       Text="强调色" />
+            <Grid Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="88" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="58" />
+                </Grid.ColumnDefinitions>
+                <TextBlock VerticalAlignment="Center" Foreground="{StaticResource SettingsMuted}" Text="文字不透明度" />
+                <Slider x:Name="TextOpacitySlider" Grid.Column="1" Minimum="0" Maximum="100"
+                        SmallChange="1" LargeChange="5" ValueChanged="TextOpacitySlider_ValueChanged" />
+                <TextBlock x:Name="TextOpacityValueText" Grid.Column="2" HorizontalAlignment="Right"
+                           VerticalAlignment="Center" Foreground="{StaticResource SettingsMuted}" />
+            </Grid>
+            <TextBlock Text="0% 全透明，100% 不透明；拖动即时生效。"
+                       Foreground="{StaticResource SettingsMuted}" FontSize="11" Margin="0,0,0,16" />
+            <TextBlock FontSize="12" FontWeight="SemiBold"
+                       Foreground="{StaticResource SettingsText}" Text="强调色" />
             <WrapPanel Margin="0,8,0,8">
                 <Button Tag="#10A37F" Background="#FF10A37F" Style="{StaticResource SwatchButton}" Click="AccentSwatch_Click" />
                 <Button Tag="#3B82F6" Background="#FF3B82F6" Style="{StaticResource SwatchButton}" Click="AccentSwatch_Click" />

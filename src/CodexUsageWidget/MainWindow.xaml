@@ -3,12 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:CodexUsageWidget.Controls"
         Title="Codex 额度"
-        Width="230"
+        Width="460"
         Height="244"
-        MinWidth="160"
+        MinWidth="150"
         MinHeight="120"
         MaxWidth="720"
-        MaxHeight="520"
+        MaxHeight="900"
         WindowStyle="None"
         ResizeMode="NoResize"
         AllowsTransparency="True"
@@ -103,7 +103,7 @@
             <Setter Property="BorderBrush" Value="#FF10A37F" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
-            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -166,7 +166,7 @@
             <Setter Property="BorderBrush" Value="#FF454B59" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
-            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="ItemContainerStyle" Value="{StaticResource TokenPeriodItem}" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -254,6 +254,9 @@
         <ContextMenu FontFamily="{StaticResource UiFont}" FontSize="13">
             <MenuItem Header="立即刷新" Click="Refresh_Click" />
             <MenuItem Header="外观设置…" Click="Appearance_Click" />
+            <MenuItem x:Name="ShowPrimaryMenuItem" Header="显示 5 小时额度" IsCheckable="True" IsChecked="True" Click="ShowPrimaryMenuItem_Click" />
+            <MenuItem x:Name="GlassMenuItem" Header="液态玻璃风格" IsCheckable="True"
+                      IsChecked="True" Click="GlassMenuItem_Click" />
             <MenuItem x:Name="ShowTokenMenuItem"
                       Header="显示 Token 消耗"
                       IsCheckable="True"
@@ -270,15 +273,8 @@
         </ContextMenu>
     </Window.ContextMenu>
 
-    <Grid>
-        <Viewbox x:Name="ContentViewbox"
-                 HorizontalAlignment="Center"
-                 VerticalAlignment="Center"
-                 Stretch="Uniform"
-                 StretchDirection="Both">
-            <Grid x:Name="DesignSurface" Width="460" Height="488">
+    <Grid Margin="10">
                 <Border x:Name="WindowChrome"
-                        Margin="10"
                         Background="#F5191C23"
                         BorderBrush="#FF353B48"
                         BorderThickness="1"
@@ -291,13 +287,61 @@
                                           Color="#FF000000" />
                     </Border.Effect>
 
-                    <Grid Margin="16,13">
+                    <Grid>
+                        <Border x:Name="GlassHighlight" Height="1.5" Margin="20,1,20,0"
+                                VerticalAlignment="Top" CornerRadius="1" IsHitTestVisible="False">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                    <GradientStop Color="#00FFFFFF" Offset="0" />
+                                    <GradientStop Color="#B0FFFFFF" Offset="0.5" />
+                                    <GradientStop Color="#00FFFFFF" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                        <Border x:Name="GlassRim" Margin="2" CornerRadius="17"
+                                BorderThickness="1" IsHitTestVisible="False">
+                            <Border.BorderBrush>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#B0FFFFFF" Offset="0" />
+                                    <GradientStop Color="#20FFFFFF" Offset="0.16" />
+                                    <GradientStop Color="#10FFFFFF" Offset="0.8" />
+                                    <GradientStop Color="#60FFFFFF" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.BorderBrush>
+                        </Border>
+                        <ScrollViewer Margin="5" VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled" PanningMode="VerticalOnly">
+                            <ScrollViewer.Resources>
+                                <Style TargetType="ScrollBar">
+                                    <Setter Property="Width" Value="7" />
+                                    <Setter Property="MinWidth" Value="0" />
+                                    <Setter Property="MaxWidth" Value="7" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ScrollBar">
+                                                <Track x:Name="PART_Track" IsDirectionReversed="True" Orientation="Vertical">
+                                                    <Track.Thumb>
+                                                        <Thumb>
+                                                            <Thumb.Template>
+                                                                <ControlTemplate TargetType="Thumb">
+                                                                    <Border Margin="1,4" Background="#507F8999" CornerRadius="3" />
+                                                                </ControlTemplate>
+                                                            </Thumb.Template>
+                                                        </Thumb>
+                                                    </Track.Thumb>
+                                                </Track>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ScrollViewer.Resources>
+                    <Grid x:Name="DesignSurface" Margin="10,6" Height="472">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="42" />
                             <RowDefinition Height="8" />
                             <RowDefinition x:Name="QuotaContentRow" Height="208" />
                             <RowDefinition x:Name="TokenTopGapRow" Height="8" />
-                            <RowDefinition x:Name="TokenContentRow" Height="142" />
+                            <RowDefinition x:Name="TokenContentRow" Height="172" />
                             <RowDefinition x:Name="StatusTopGapRow" Height="8" />
                             <RowDefinition Height="26" />
                         </Grid.RowDefinitions>
@@ -343,7 +387,7 @@
                                 <TextBlock x:Name="StyleSubtitleText"
                                            Margin="0,1,0,0"
                                            FontFamily="{StaticResource UiFont}"
-                                           FontSize="9.5"
+                                           FontSize="11"
                                            Foreground="{DynamicResource TextSecondary}"
                                            Text="环形视图" />
                             </StackPanel>
@@ -358,7 +402,7 @@
                                 <TextBlock x:Name="PlanText"
                                            VerticalAlignment="Center"
                                            FontFamily="Segoe UI Semibold"
-                                           FontSize="10"
+                                           FontSize="11"
                                            FontWeight="SemiBold"
                                            Foreground="#FFA9B3C2"
                                            Text="CODEX" />
@@ -421,7 +465,7 @@
                                                    Grid.Row="3"
                                                    VerticalAlignment="Bottom"
                                                    FontFamily="{StaticResource UiFont}"
-                                                   FontSize="10"
+                                                   FontSize="11"
                                                    Foreground="#FF7F8999"
                                                    Text="正在读取…" />
                                     </Grid>
@@ -456,7 +500,7 @@
                                                    Grid.Row="3"
                                                    VerticalAlignment="Bottom"
                                                    FontFamily="{StaticResource UiFont}"
-                                                   FontSize="10"
+                                                   FontSize="11"
                                                    Foreground="#FF7F8999"
                                                    Text="正在读取…" />
                                     </Grid>
@@ -574,10 +618,10 @@
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="24" />
-                                    <RowDefinition Height="35" />
+                                    <RowDefinition Height="50" />
                                     <RowDefinition Height="10" />
-                                    <RowDefinition Height="38" />
-                                    <RowDefinition Height="11" />
+                                    <RowDefinition Height="44" />
+                                    <RowDefinition Height="20" />
                                 </Grid.RowDefinitions>
 
                                 <Grid Grid.Row="0">
@@ -642,13 +686,14 @@
                                                    Text="—" />
                                         <TextBlock Margin="1,-2,0,0"
                                                    FontFamily="{StaticResource UiFont}"
-                                                   FontSize="9.5"
+                                                   FontSize="11"
                                                    Foreground="{DynamicResource TextSecondary}"
                                                    Text="总 Token" />
                                     </StackPanel>
                                     <Border Grid.Column="1" Margin="0,2" Background="#445E6573" />
                                     <StackPanel Grid.Column="3" VerticalAlignment="Center">
                                         <TextBlock x:Name="EstimatedCostText"
+                                                   TextTrimming="CharacterEllipsis"
                                                    FontFamily="Segoe UI Variable Display, Segoe UI"
                                                    FontSize="22"
                                                    FontWeight="SemiBold"
@@ -657,7 +702,7 @@
                                         <TextBlock x:Name="ServiceTierEstimatedCostText"
                                                    Margin="1,-2,0,0"
                                                    FontFamily="{StaticResource UiFont}"
-                                                   FontSize="9.5"
+                                                   FontSize="11"
                                                    Foreground="{DynamicResource TextSecondary}"
                                                    Text="档位估算 US$—"
                                                    TextTrimming="CharacterEllipsis" />
@@ -699,11 +744,11 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <Ellipse Width="7" Height="7" VerticalAlignment="Center" Fill="#FF3B82F6" />
-                                        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextSecondary}" Text="普通输入" />
-                                        <TextBlock x:Name="RegularInputTokenText" Grid.Column="2" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextPrimary}" Text="—" />
+                                        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="普通输入" />
+                                        <TextBlock x:Name="RegularInputTokenText" Grid.Column="2" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextPrimary}" Text="—" />
                                         <Ellipse Grid.Row="1" Width="7" Height="7" VerticalAlignment="Center" Fill="#FF8B5CF6" />
-                                        <TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextSecondary}" Text="可见输出" />
-                                        <TextBlock x:Name="VisibleOutputTokenText" Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextPrimary}" Text="—" />
+                                        <TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="可见输出" />
+                                        <TextBlock x:Name="VisibleOutputTokenText" Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextPrimary}" Text="—" />
                                     </Grid>
                                     <Border Grid.Column="1" Width="1" Margin="6,0" Background="#445E6573" />
                                     <Grid Grid.Column="2">
@@ -717,19 +762,20 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <Ellipse Width="7" Height="7" VerticalAlignment="Center" Fill="#FF2DD4BF" />
-                                        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextSecondary}" Text="缓存输入" />
-                                        <TextBlock x:Name="CachedInputTokenText" Grid.Column="2" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextPrimary}" Text="—" />
+                                        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="缓存输入" />
+                                        <TextBlock x:Name="CachedInputTokenText" Grid.Column="2" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextPrimary}" Text="—" />
                                         <Ellipse Grid.Row="1" Width="7" Height="7" VerticalAlignment="Center" Fill="#FFF59E0B" />
-                                        <TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextSecondary}" Text="推理输出" />
-                                        <TextBlock x:Name="ReasoningOutputTokenText" Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextPrimary}" Text="—" />
+                                        <TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextSecondary}" Text="推理输出" />
+                                        <TextBlock x:Name="ReasoningOutputTokenText" Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextPrimary}" Text="—" />
                                     </Grid>
                                 </Grid>
 
                                 <TextBlock x:Name="TokenEstimateNoteText"
+                                           TextTrimming="CharacterEllipsis"
                                            Grid.Row="4"
                                            VerticalAlignment="Bottom"
                                            FontFamily="{StaticResource UiFont}"
-                                           FontSize="8.5"
+                                           FontSize="11"
                                            Foreground="{DynamicResource TextSecondary}"
                                            Text="按各请求实际模型单价估算，不代表订阅账单" />
                             </Grid>
@@ -752,7 +798,7 @@
                                        Grid.Column="1"
                                        VerticalAlignment="Center"
                                        FontFamily="{StaticResource UiFont}"
-                                       FontSize="10.5"
+                                       FontSize="11"
                                        Foreground="{DynamicResource TextSecondary}"
                                        Text="正在连接 Codex…" />
                             <TextBlock x:Name="RingNextResetText"
@@ -760,7 +806,7 @@
                                        Margin="10,0,0,0"
                                        VerticalAlignment="Center"
                                        FontFamily="{StaticResource UiFont}"
-                                       FontSize="9.5"
+                                       FontSize="11"
                                        Foreground="{DynamicResource TextSecondary}"
                                        Text="下次重置时间未知" />
                             <Border x:Name="BadgeBorder"
@@ -771,18 +817,19 @@
                                     VerticalAlignment="Center"
                                     Background="#FF26322F"
                                     CornerRadius="9"
-                                    Visibility="Collapsed">
+                                    Visibility="Visible">
                                 <TextBlock x:Name="BadgeText"
+                                           Text="重置卡 —"
                                            VerticalAlignment="Center"
                                            FontFamily="{StaticResource UiFont}"
-                                           FontSize="9.5"
+                                           FontSize="11"
                                            Foreground="#FF86E6C4" />
                             </Border>
                         </Grid>
                     </Grid>
+                        </ScrollViewer>
+                    </Grid>
                 </Border>
-            </Grid>
-        </Viewbox>
 
         <Grid Panel.ZIndex="100">
             <Thumb Tag="Left"

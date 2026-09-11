@@ -30,4 +30,14 @@ public sealed record CodexQuotaSnapshot(
     int ResetCreditsAvailable,
     string Source,
     DateTimeOffset UpdatedAt,
-    string? Warning = null);
+    string? Warning = null)
+{
+    // API primary/secondary describe source slots, not fixed reset periods.
+    public CodexQuotaSnapshot NormalizeWindowOrder()
+    {
+        if (Secondary?.WindowDurationMinutes == 300 && Primary?.WindowDurationMinutes != 300 ||
+            Primary?.WindowDurationMinutes == 10080 && Secondary?.WindowDurationMinutes != 10080)
+            return this with { Primary = Secondary, Secondary = Primary };
+        return this;
+    }
+}

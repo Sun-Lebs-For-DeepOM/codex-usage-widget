@@ -13,10 +13,14 @@
 独立读取本地日志中的线程档位，按模型和档位分别计算：
 
 - `default`、`standard`：Standard；
-- `priority`、`fast`：Priority；
+- `priority`、`fast`：Fast；
 - `flex`：Flex。
 
 跨档位周期会分段累加，不使用统一倍率替代逐模型价表。
+
+OpenAI 已于 2026 年 7 月 30 日将 Priority processing 更名为 Fast mode。为兼容历史日志，程序继续识别 `priority`，但界面统一显示为 Fast。
+
+GPT-5.6 Sol 当前采用官方促销价格，官方说明该价格至少持续至 2026 年 11 月 21 日。`ultrafast` 已出现在接口档位枚举中，但当前公开定价页未列出其可核验价格；若日志出现该值，程序会将其作为未知档位按 Standard 推定，并计入“推定比例”。
 
 ## Token 分类
 
@@ -47,7 +51,7 @@
 
 ## 定价来源
 
-内置价表核验日期为 `2026-07-21`：
+内置价表核验日期为 `2026-09-07`。当前价表包含 GPT-6 Astra，以及 GPT-5.6 Sol、Terra、Luna 的 Standard、Flex 和 Fast 价格；超过 272K 输入 Token 的单次请求按官方长上下文价格计算：
 
 - [OpenAI API Pricing](https://developers.openai.com/api/docs/pricing)
 - [Prompt Caching](https://developers.openai.com/api/docs/guides/prompt-caching#requirements)

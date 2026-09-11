@@ -29,7 +29,7 @@ public static class RateLimitResponseParser
             ParseIndividualLimit(rateLimits, camelCase: true),
             ParseResetCreditsCount(result),
             "实时",
-            updatedAt ?? DateTimeOffset.Now);
+            updatedAt ?? DateTimeOffset.Now).NormalizeWindowOrder();
     }
 
     public static CodexQuotaSnapshot? ParseSessionLogLine(
@@ -77,7 +77,7 @@ public static class RateLimitResponseParser
             0,
             "缓存",
             timestamp,
-            "实时接口暂不可用，显示最近一次本地快照");
+            "实时接口暂不可用，显示最近一次本地快照").NormalizeWindowOrder();
     }
 
     private static JsonElement SelectCodexBucket(JsonElement result)

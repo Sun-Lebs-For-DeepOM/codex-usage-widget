@@ -28,6 +28,7 @@ public partial class MainWindow : Window
     private bool _tokenRefreshPendingBusyState;
     private long _tokenQueryVersion;
     private bool _settingsReady;
+    private bool _glassEffect = true;
     private bool? _lastSettingsSaveSucceeded;
     private DateTimeOffset _lastPushRefresh = DateTimeOffset.MinValue;
     private Color _accentColor = Color.FromRgb(0x10, 0xA3, 0x7F);
@@ -54,6 +55,9 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        InitializeResetCycle();
+        InitializeBackdrop();
+        InitializeResponsiveLayout();
 
         _refreshTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
@@ -104,10 +108,15 @@ public partial class MainWindow : Window
     private void ApplySavedPlacement()
     {
         var settings = WidgetSettingsStore.Load();
+        ShowPrimaryQuota = settings.ShowPrimaryQuota;
+        ShowPrimaryMenuItem.IsChecked = ShowPrimaryQuota;
+        TextOpacity = NormalizeFinite(settings.TextOpacity, 1, 0, 1);
+        _glassEffect = settings.GlassEffect;
+        GlassMenuItem.IsChecked = _glassEffect;
         ApplyAppearance(
             NormalizeFinite(settings.Width, 230, MinWidth, MaxWidth),
             NormalizeFinite(settings.Height, 244, MinHeight, MaxHeight),
-            NormalizeFinite(settings.Opacity, 1.0, 0.50, 1.0),
+            NormalizeFinite(settings.Opacity, 1.0, 0, 1.0),
             settings.AccentColor,
             settings.BackgroundColor);
         ApplyDisplayOptions(
@@ -148,6 +157,38 @@ public partial class MainWindow : Window
 
         _displayOptionsReady = true;
         _settingsReady = true;
+        SaveCurrentSettings();
+    }
+
+    public void RestoreVisibility()
+    {
+        var shouldRemainTopmost = Topmost;
+        var workArea = SystemParameters.WorkArea;
+        var currentWidth = ActualWidth > 0 ? ActualWidth : Width;
+        var currentHeight = ActualHeight > 0 ? ActualHeight : Height;
+        var fallbackLeft = workArea.Right - currentWidth - 18;
+        var fallbackTop = workArea.Top + 18;
+
+        Left = Math.Clamp(
+            double.IsFinite(Left) ? Left : fallbackLeft,
+            workArea.Left,
+            Math.Max(workArea.Left, workArea.Right - currentWidth));
+        Top = Math.Clamp(
+            double.IsFinite(Top) ? Top : fallbackTop,
+            workArea.Top,
+            Math.Max(workArea.Top, workArea.Bottom - currentHeight));
+
+        if (IsVisible)
+        {
+            Hide();
+        }
+
+        WindowState = WindowState.Normal;
+        Topmost = false;
+        Show();
+        Activate();
+        Topmost = shouldRemainTopmost;
+        Focus();
         SaveCurrentSettings();
     }
 
@@ -281,6 +322,8 @@ public partial class MainWindow : Window
 
     private void ApplySnapshot(CodexQuotaSnapshot snapshot)
     {
+        snapshot = snapshot.NormalizeWindowOrder();
+        _snapshot = snapshot;
         PlanText.Text = string.IsNullOrWhiteSpace(snapshot.PlanType)
             ? "CODEX"
             : snapshot.PlanType.ToUpperInvariant();
@@ -328,20 +371,18 @@ public partial class MainWindow : Window
             badges.Add($"Credits {balance}");
         }
 
-        if (snapshot.ResetCreditsAvailable > 0)
-        {
-            badges.Add($"重置卡 {snapshot.ResetCreditsAvailable}");
-        }
+        badges.Add($"重置卡 {snapshot.ResetCreditsAvailable}");
 
         if (snapshot.IndividualLimit is { } individualLimit)
         {
             badges.Add($"个人 {individualLimit.RemainingPercent}%");
         }
 
-        BadgeText.Text = string.Join(" · ", badges);
-        BadgeBorder.Visibility = badges.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        BadgeBorder.ToolTip = "额外 Credits、可用额度重置卡或个人额度";
+        BadgeText.Text = $"重置卡 {snapshot.ResetCreditsAvailable}";
+        BadgeBorder.Visibility = Visibility.Visible;
+        BadgeBorder.ToolTip = string.Join("\n", badges);
         UpdateTimeLabels();
+        UpdateResponsiveLayout();
     }
 
     private void ApplyTokenUsageSnapshot(TokenUsageSnapshot snapshot)
@@ -464,7 +505,7 @@ public partial class MainWindow : Window
             $"金额按公开 Standard API Token 单价逐请求估算（核验于 {TokenCostEstimator.PricingVerifiedDate}），" +
             "不含工具调用费，也不代表订阅账单。\n" +
             $"另行按日志中最近一次 thread_settings_applied 的 service_tier 估算线程档位价格（{tierLabel}）；" +
-            "fast 归入 Priority；该设置不等同于响应最终采用的计费档位。" +
+            "priority 与 fast 均按 Fast 价格计算；该设置不等同于响应最终采用的计费档位。" +
             unknownModels + standardCoverageNote + tierUnknownModels + unknownTiers + referenceModels + inferenceNote + tierCoverageNote + cacheWriteNote +
             (string.IsNullOrWhiteSpace(snapshot.Warning) ? string.Empty : $"\n{snapshot.Warning}");
     }
@@ -513,7 +554,7 @@ public partial class MainWindow : Window
         return tiers[0] switch
         {
             "standard" => "Standard",
-            "priority" => "Priority",
+            "priority" => "Fast",
             "flex" => "Flex",
             _ => "档位估算"
         };
@@ -624,7 +665,9 @@ public partial class MainWindow : Window
         percentRun.Text = window.RemainingPercent.ToString();
         percentRun.Foreground = GetQuotaBrush(window.RemainingPercent);
         ring.Value = window.RemainingPercent;
-        ring.ProgressBrush = GetQuotaBrush(window.RemainingPercent);
+        ring.ProgressBrush = window.RemainingPercent <= 20
+            ? CreateBrush("#FFFB7185")
+            : CreateBrush(_displayAccent);
         usedText.Text = $"已用 {window.UsedPercent}%";
         usedText.ToolTip = window.ResetsAt is { } reset
             ? $"重置时间：{reset.ToLocalTime():yyyy-MM-dd HH:mm:ss}"
@@ -633,6 +676,7 @@ public partial class MainWindow : Window
 
     private void UpdateTimeLabels()
     {
+        UpdateResetCycle();
         if (_snapshot is null)
         {
             return;
@@ -712,7 +756,8 @@ public partial class MainWindow : Window
     {
         Width = NormalizeFinite(width, 372, MinWidth, MaxWidth);
         Height = NormalizeFinite(height, 252, MinHeight, MaxHeight);
-        Opacity = NormalizeFinite(opacity, 1.0, 0.50, 1.0);
+        _backgroundOpacity = NormalizeFinite(opacity, 1.0, 0, 1.0);
+        Opacity = 1;
 
         if (TryNormalizeColor(accentColor, out var normalizedAccent))
         {
@@ -795,11 +840,12 @@ public partial class MainWindow : Window
 
         TokenUsagePanel.Visibility = showTokenUsage ? Visibility.Visible : Visibility.Collapsed;
         TokenTopGapRow.Height = new GridLength(showTokenUsage ? 8 : 0);
-        TokenContentRow.Height = new GridLength(showTokenUsage ? 142 : 0);
+        TokenContentRow.Height = new GridLength(showTokenUsage ? 172 : 0);
         ShowTokenMenuItem.IsChecked = showTokenUsage;
 
         var newDesignHeight = GetDesignHeight(viewStyle, showTokenUsage);
-        DesignSurface.Height = newDesignHeight;
+        DesignSurface.Height = newDesignHeight - 46;
+        UpdateResponsiveLayout();
         var wasSynchronizing = _synchronizingDisplayOptions;
         _synchronizingDisplayOptions = true;
         SelectPeriodItem(CumulativePeriodComboBox, tokenPeriod);
@@ -808,10 +854,8 @@ public partial class MainWindow : Window
 
         if (resizeWindow && IsLoaded && oldDesignHeight > 0 && Math.Abs(oldDesignHeight - newDesignHeight) > 0.1)
         {
-            var actualWidth = ActualWidth > 0 ? ActualWidth : Width;
             var actualHeight = ActualHeight > 0 ? ActualHeight : Height;
-            var scale = Math.Min(actualWidth / Math.Max(1, DesignSurface.Width), actualHeight / oldDesignHeight);
-            Height = Math.Clamp(actualHeight + (newDesignHeight - oldDesignHeight) * scale, MinHeight, MaxHeight);
+            Height = Math.Clamp(actualHeight + (DesignSurface.Height - oldDesignHeight), MinHeight, MaxHeight);
         }
 
         ApplyTheme();
@@ -832,9 +876,9 @@ public partial class MainWindow : Window
     private static double GetDesignHeight(WidgetViewStyle viewStyle, bool showTokenUsage) =>
         (viewStyle, showTokenUsage) switch
         {
-            (WidgetViewStyle.Ring, true) => 488,
+            (WidgetViewStyle.Ring, true) => 518,
             (WidgetViewStyle.Ring, false) => 338,
-            (WidgetViewStyle.Card, true) => 408,
+            (WidgetViewStyle.Card, true) => 438,
             _ => 258
         };
 
@@ -886,6 +930,14 @@ public partial class MainWindow : Window
         return true;
     }
 
+    private void GlassMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        _glassEffect = GlassMenuItem.IsChecked;
+        ApplyTheme();
+        UpdateResponsiveLayout();
+        ScheduleSettingsSave();
+    }
+
     private void ApplyTheme()
     {
         var lightBackground = GetLuminance(_backgroundColor) > 0.55;
@@ -904,26 +956,31 @@ public partial class MainWindow : Window
             : _accentColor;
 
         Resources["TextPrimary"] = CreateBrush(primaryText);
+        Resources["QuotaLegendBrush"] = CreateBrush(_displayAccent);
+        Resources["TimeLegendBrush"] = CreateBrush("#FF45BED0");
         Resources["TextSecondary"] = CreateBrush(secondaryText);
         Resources["PanelBorder"] = CreateBrush(borderColor);
-        Resources["RingTrack"] = CreateBrush(Blend(cardColor, contrastTarget, lightBackground ? 0.15 : 0.13));
+        Resources["RingTrack"] = CreateBrush(Color.FromArgb(40, secondaryText.R, secondaryText.G, secondaryText.B));
 
-        WindowChrome.Background = CreateBrush(Color.FromArgb(
-            0xF5,
-            _backgroundColor.R,
-            _backgroundColor.G,
-            _backgroundColor.B));
-        WindowChrome.BorderBrush = CreateBrush(borderColor);
-        PrimaryCard.Background = CreateBrush(cardColor);
-        SecondaryCard.Background = CreateBrush(cardColor);
+        UpdateNativeBackdrop();
+        var glassTint = Blend(_backgroundColor, Colors.White, lightBackground ? 0.18 : 0.08);
+        WindowChrome.Background = _glassEffect
+            ? CreateBrush(Color.FromArgb((byte)(255 * _backgroundOpacity), glassTint.R, glassTint.G, glassTint.B))
+            : CreateBrush(Color.FromArgb((byte)(255 * _backgroundOpacity), _backgroundColor.R, _backgroundColor.G, _backgroundColor.B));
+        WindowChrome.BorderBrush = _glassEffect
+            ? CreateBrush(Color.FromArgb((byte)(80 * _backgroundOpacity), 255, 255, 255))
+            : CreateBrush(Color.FromArgb((byte)(255 * _backgroundOpacity), borderColor.R, borderColor.G, borderColor.B));
+        GlassHighlight.Visibility = GlassRim.Visibility = _glassEffect ? Visibility.Visible : Visibility.Collapsed;
+        GlassHighlight.Opacity = GlassRim.Opacity = _backgroundOpacity;
+        if (WindowChrome.Effect is System.Windows.Media.Effects.DropShadowEffect shadow) shadow.Opacity = 0.25 * _backgroundOpacity;
+        PrimaryCard.Background = CreateBrush(Color.FromArgb((byte)((_glassEffect ? 45 : 255) * _backgroundOpacity), cardColor.R, cardColor.G, cardColor.B));
+        SecondaryCard.Background = PrimaryCard.Background;
         PrimaryCard.BorderBrush = CreateBrush(borderColor);
         SecondaryCard.BorderBrush = CreateBrush(borderColor);
-        TokenUsagePanel.Background = CreateBrush(Color.FromArgb(
-            0xC8,
-            cardColor.R,
-            cardColor.G,
-            cardColor.B));
-        TokenUsagePanel.BorderBrush = CreateBrush(borderColor);
+        TokenUsagePanel.Background = Brushes.Transparent;
+        TokenUsagePanel.BorderThickness = new Thickness(0, 1, 0, 0);
+        TokenUsagePanel.CornerRadius = new CornerRadius(0);
+        TokenUsagePanel.BorderBrush = CreateBrush(Color.FromArgb(45, borderColor.R, borderColor.G, borderColor.B));
         PrimaryProgress.Background = CreateBrush(Blend(cardColor, contrastTarget, lightBackground ? 0.14 : 0.12));
         SecondaryProgress.Background = PrimaryProgress.Background;
         PrimaryRing.TrackBrush = (Brush)Resources["RingTrack"];
@@ -1257,13 +1314,16 @@ public partial class MainWindow : Window
             Left = Left,
             Top = Top,
             Topmost = Topmost,
+            GlassEffect = _glassEffect,
             Width = ActualWidth > 0 ? ActualWidth : Width,
             Height = ActualHeight > 0 ? ActualHeight : Height,
-            Opacity = Opacity,
+            Opacity = _backgroundOpacity,
+            TextOpacity = TextOpacity,
             AccentColor = AccentColorHex,
             BackgroundColor = BackgroundColorHex,
             ViewStyle = _viewStyle.ToString(),
             ShowTokenUsage = _showTokenUsage,
+            ShowPrimaryQuota = ShowPrimaryQuota,
             TokenScope = _tokenScope.ToString(),
             TokenPeriod = _tokenPeriod.ToSettingValue(),
             CustomStartDate = _customStartDate,

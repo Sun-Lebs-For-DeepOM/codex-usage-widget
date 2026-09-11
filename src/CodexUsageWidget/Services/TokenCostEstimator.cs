@@ -4,7 +4,7 @@ namespace CodexUsageWidget.Services;
 
 public sealed class TokenCostEstimator
 {
-    public const string PricingVerifiedDate = "2026-07-21";
+    public const string PricingVerifiedDate = "2026-09-07";
     public const string PricingSource = "https://developers.openai.com/api/docs/pricing";
     public const string DefaultFallbackModel = "gpt-5.6-terra";
 
@@ -14,10 +14,11 @@ public sealed class TokenCostEstimator
     private static readonly IReadOnlyDictionary<string, ModelPricing> StandardPricingByModel =
         new Dictionary<string, ModelPricing>(StringComparer.OrdinalIgnoreCase)
         {
-            ["gpt-5.6-sol"] = new(5m, 0.5m, 6.25m, 30m, ModelFamily.Gpt56),
-            ["gpt-5.6"] = new(5m, 0.5m, 6.25m, 30m, ModelFamily.Gpt56),
-            ["gpt-5.6-terra"] = new(2.5m, 0.25m, 3.125m, 15m, ModelFamily.Gpt56),
-            ["gpt-5.6-luna"] = new(1m, 0.1m, 1.25m, 6m, ModelFamily.Gpt56),
+            ["gpt-6-astra"] = new(10m, 1m, 12.5m, 50m, ModelFamily.CurrentFlagship),
+            ["gpt-5.6-sol"] = new(4m, 0.4m, 5m, 20m, ModelFamily.CurrentFlagship),
+            ["gpt-5.6"] = new(4m, 0.4m, 5m, 20m, ModelFamily.CurrentFlagship),
+            ["gpt-5.6-terra"] = new(2m, 0.2m, 2.5m, 12m, ModelFamily.CurrentFlagship),
+            ["gpt-5.6-luna"] = new(0.2m, 0.02m, 0.25m, 1.2m, ModelFamily.CurrentFlagship),
             ["gpt-5.5"] = new(5m, 0.5m, null, 30m, ModelFamily.Gpt55),
             ["gpt-5.5-2026-04-23"] = new(5m, 0.5m, null, 30m, ModelFamily.Gpt55),
             ["gpt-5.4"] = new(2.5m, 0.25m, null, 15m, ModelFamily.Gpt54),
@@ -27,13 +28,14 @@ public sealed class TokenCostEstimator
             ["gpt-5.3-codex"] = new(1.75m, 0.175m, null, 14m, ModelFamily.Fixed)
         };
 
-    private static readonly IReadOnlyDictionary<string, ModelPricing> PriorityPricingByModel =
+    private static readonly IReadOnlyDictionary<string, ModelPricing> FastPricingByModel =
         new Dictionary<string, ModelPricing>(StringComparer.OrdinalIgnoreCase)
         {
-            ["gpt-5.6-sol"] = new(10m, 1m, 12.5m, 60m, ModelFamily.Gpt56),
-            ["gpt-5.6"] = new(10m, 1m, 12.5m, 60m, ModelFamily.Gpt56),
-            ["gpt-5.6-terra"] = new(5m, 0.5m, 6.25m, 30m, ModelFamily.Gpt56),
-            ["gpt-5.6-luna"] = new(2m, 0.2m, 2.5m, 12m, ModelFamily.Gpt56),
+            ["gpt-6-astra"] = new(20m, 2m, 25m, 100m, ModelFamily.CurrentFlagship),
+            ["gpt-5.6-sol"] = new(8m, 0.8m, 10m, 40m, ModelFamily.CurrentFlagship),
+            ["gpt-5.6"] = new(8m, 0.8m, 10m, 40m, ModelFamily.CurrentFlagship),
+            ["gpt-5.6-terra"] = new(4m, 0.4m, 5m, 24m, ModelFamily.CurrentFlagship),
+            ["gpt-5.6-luna"] = new(0.4m, 0.04m, 0.5m, 2.4m, ModelFamily.CurrentFlagship),
             ["gpt-5.5"] = new(12.5m, 1.25m, null, 75m, ModelFamily.Gpt55),
             ["gpt-5.5-2026-04-23"] = new(12.5m, 1.25m, null, 75m, ModelFamily.Gpt55),
             ["gpt-5.4"] = new(5m, 0.5m, null, 30m, ModelFamily.Gpt54),
@@ -45,10 +47,11 @@ public sealed class TokenCostEstimator
     private static readonly IReadOnlyDictionary<string, ModelPricing> FlexPricingByModel =
         new Dictionary<string, ModelPricing>(StringComparer.OrdinalIgnoreCase)
         {
-            ["gpt-5.6-sol"] = new(2.5m, 0.25m, 3.125m, 15m, ModelFamily.Gpt56),
-            ["gpt-5.6"] = new(2.5m, 0.25m, 3.125m, 15m, ModelFamily.Gpt56),
-            ["gpt-5.6-terra"] = new(1.25m, 0.125m, 1.5625m, 7.5m, ModelFamily.Gpt56),
-            ["gpt-5.6-luna"] = new(0.5m, 0.05m, 0.625m, 3m, ModelFamily.Gpt56),
+            ["gpt-6-astra"] = new(5m, 0.5m, 6.25m, 25m, ModelFamily.CurrentFlagship),
+            ["gpt-5.6-sol"] = new(2m, 0.2m, 2.5m, 10m, ModelFamily.CurrentFlagship),
+            ["gpt-5.6"] = new(2m, 0.2m, 2.5m, 10m, ModelFamily.CurrentFlagship),
+            ["gpt-5.6-terra"] = new(1m, 0.1m, 1.25m, 6m, ModelFamily.CurrentFlagship),
+            ["gpt-5.6-luna"] = new(0.1m, 0.01m, 0.125m, 0.6m, ModelFamily.CurrentFlagship),
             ["gpt-5.5"] = new(2.5m, 0.25m, null, 15m, ModelFamily.Gpt55),
             ["gpt-5.5-2026-04-23"] = new(2.5m, 0.25m, null, 15m, ModelFamily.Gpt55),
             ["gpt-5.4"] = new(1.25m, 0.13m, null, 7.5m, ModelFamily.Gpt54),
@@ -219,7 +222,7 @@ public sealed class TokenCostEstimator
         var catalog = normalizedTier switch
         {
             "standard" => StandardPricingByModel,
-            "priority" => PriorityPricingByModel,
+            "priority" => FastPricingByModel,
             "flex" => FlexPricingByModel,
             _ => null
         };
@@ -254,7 +257,7 @@ public sealed class TokenCostEstimator
             inputRate *= 2m;
             cachedRate *= 2m;
             outputRate *= 1.5m;
-            if (pricing.Family == ModelFamily.Gpt56)
+            if (pricing.Family == ModelFamily.CurrentFlagship)
             {
                 cacheWriteRate = inputRate * 1.25m;
             }
@@ -292,7 +295,7 @@ public sealed class TokenCostEstimator
 
     private enum ModelFamily
     {
-        Gpt56,
+        CurrentFlagship,
         Gpt55,
         Gpt54,
         Fixed

@@ -186,6 +186,96 @@ finally
 }
 
 var estimator = new TokenCostEstimator();
+using (var weeklyOnlyDocument = JsonDocument.Parse("""
+{"rateLimits":{"primary":{"usedPercent":15,"windowDurationMins":10080}}}
+"""))
+{
+    var weeklyOnly = RateLimitResponseParser.ParseAppServerResult(weeklyOnlyDocument.RootElement);
+    Check("keeps weekly-only primary API data in the weekly display slot", weeklyOnly.Primary is null && weeklyOnly.Secondary?.WindowDurationMinutes == 10080);
+}
+using (var reversedDocument = JsonDocument.Parse("""
+{"rateLimits":{"primary":{"usedPercent":15,"windowDurationMins":10080},"secondary":{"usedPercent":1,"windowDurationMins":300}}}
+"""))
+{
+    var reversedWindows = RateLimitResponseParser.ParseAppServerResult(reversedDocument.RootElement);
+    Check("identifies five-hour and weekly periods when API slots are reversed", reversedWindows.Primary?.WindowDurationMinutes == 300 && reversedWindows.Secondary?.WindowDurationMinutes == 10080);
+}
+
+void CheckPriceTable(
+    string label,
+    string model,
+    string? serviceTier,
+    decimal inputRate,
+    decimal cachedInputRate,
+    decimal cacheWriteRate,
+    decimal outputRate)
+{
+    const long tokenCount = 100_000;
+    var expected = new[]
+    {
+        inputRate / 10m,
+        cachedInputRate / 10m,
+        cacheWriteRate / 10m,
+        outputRate / 10m
+    };
+    var totals = new[]
+    {
+        new TokenUsageTotals(tokenCount, 0, 0, 0, 0),
+        new TokenUsageTotals(tokenCount, tokenCount, 0, 0, 0),
+        new TokenUsageTotals(tokenCount, 0, tokenCount, 0, 0),
+        new TokenUsageTotals(0, 0, 0, tokenCount, 0)
+    };
+
+    var matched = true;
+    for (var index = 0; index < totals.Length; index++)
+    {
+        var sample = new TokenUsageSample(DateTimeOffset.UtcNow, model, totals[index], serviceTier);
+        var estimated = 0m;
+        var priced = serviceTier is null
+            ? estimator.TryEstimate(sample, out estimated)
+            : estimator.TryEstimateServiceTier(sample, out estimated, out _);
+        matched &= priced && estimated == expected[index];
+    }
+
+    Check(label, matched);
+}
+
+CheckPriceTable("uses GPT-6 Astra Standard prices", "gpt-6-astra", null, 10m, 1m, 12.5m, 50m);
+CheckPriceTable("uses GPT-6 Astra Flex prices", "gpt-6-astra", "flex", 5m, 0.5m, 6.25m, 25m);
+CheckPriceTable("uses GPT-6 Astra Fast prices", "gpt-6-astra", "fast", 20m, 2m, 25m, 100m);
+CheckPriceTable("uses GPT-5.6 Sol Standard prices", "gpt-5.6-sol", null, 4m, 0.4m, 5m, 20m);
+CheckPriceTable("uses GPT-5.6 Sol Flex prices", "gpt-5.6-sol", "flex", 2m, 0.2m, 2.5m, 10m);
+CheckPriceTable("uses GPT-5.6 Sol Fast prices", "gpt-5.6-sol", "fast", 8m, 0.8m, 10m, 40m);
+CheckPriceTable("uses GPT-5.6 Terra Standard prices", "gpt-5.6-terra", null, 2m, 0.2m, 2.5m, 12m);
+CheckPriceTable("uses GPT-5.6 Terra Flex prices", "gpt-5.6-terra", "flex", 1m, 0.1m, 1.25m, 6m);
+CheckPriceTable("uses GPT-5.6 Terra Fast prices", "gpt-5.6-terra", "fast", 4m, 0.4m, 5m, 24m);
+CheckPriceTable("uses GPT-5.6 Luna Standard prices", "gpt-5.6-luna", null, 0.2m, 0.02m, 0.25m, 1.2m);
+CheckPriceTable("uses GPT-5.6 Luna Flex prices", "gpt-5.6-luna", "flex", 0.1m, 0.01m, 0.125m, 0.6m);
+CheckPriceTable("uses GPT-5.6 Luna Fast prices", "gpt-5.6-luna", "fast", 0.4m, 0.04m, 0.5m, 2.4m);
+
+var astraLongContextSample = new TokenUsageSample(
+    DateTimeOffset.UtcNow,
+    "gpt-6-astra",
+    new TokenUsageTotals(273_000, 100_000, 10_000, 10_000, 0));
+Check(
+    "uses GPT-6 Astra Standard long-context prices",
+    estimator.TryEstimate(astraLongContextSample, out var astraLongStandardCost) &&
+    astraLongStandardCost == 4.46m);
+Check(
+    "uses GPT-6 Astra Flex long-context prices",
+    estimator.TryEstimateServiceTier(
+        astraLongContextSample with { ServiceTier = "flex" },
+        out var astraLongFlexCost,
+        out _) &&
+    astraLongFlexCost == 2.23m);
+Check(
+    "uses GPT-6 Astra Fast long-context prices",
+    estimator.TryEstimateServiceTier(
+        astraLongContextSample with { ServiceTier = "fast" },
+        out var astraLongFastCost,
+        out _) &&
+    astraLongFastCost == 8.92m);
+
 var knownCost = estimator.Estimate(new[]
 {
     new TokenUsageSample(
@@ -193,7 +283,7 @@ var knownCost = estimator.Estimate(new[]
         "gpt-5.6-sol",
         new TokenUsageTotals(1_000, 400, 100, 300, 100))
 });
-Check("estimates known-model Standard API equivalent", knownCost.EstimatedUsd == 0.012325m);
+Check("estimates known-model Standard API equivalent", knownCost.EstimatedUsd == 0.00866m);
 Check("does not double-count reasoning output", knownCost.UnpricedTokens == 0);
 
 var prioritySample = new TokenUsageSample(
@@ -202,21 +292,21 @@ var prioritySample = new TokenUsageSample(
     new TokenUsageTotals(1_000, 400, 100, 300, 100),
     "priority");
 Check(
-    "estimates Priority separately from Standard equivalent",
+    "estimates Fast separately from Standard equivalent",
     estimator.TryEstimateServiceTier(prioritySample, out var priorityCost, out var priorityTier) &&
     priorityTier == "priority" &&
-    priorityCost == 0.02465m);
+    priorityCost == 0.01732m);
 Check(
     "keeps Standard equivalent unchanged when a speed tier is present",
     estimator.TryEstimate(prioritySample, out var unchangedStandardCost) &&
-    unchangedStandardCost == 0.012325m);
+    unchangedStandardCost == 0.00866m);
 
 var flexSample = prioritySample with { ServiceTier = "flex" };
 Check(
     "estimates Flex separately from Standard equivalent",
     estimator.TryEstimateServiceTier(flexSample, out var flexCost, out var flexTier) &&
     flexTier == "flex" &&
-    flexCost == 0.0061625m);
+    flexCost == 0.00433m);
 
 var gpt55Sample = new TokenUsageSample(
     DateTimeOffset.UtcNow,
@@ -262,10 +352,10 @@ Check(
     !estimator.TryEstimateServiceTier(unknownTierSample, out _, out var unknownTier) &&
     unknownTier is null &&
     estimator.TryEstimate(unknownTierSample, out var unknownTierStandardCost) &&
-    unknownTierStandardCost == 0.012325m);
+    unknownTierStandardCost == 0.00866m);
 
 Check(
-    "maps Codex fast to the published Priority table",
+    "maps priority and fast to the published Fast table",
     estimator.TryEstimateServiceTier(
         prioritySample with { ServiceTier = "fast" },
         out var fastCost,
@@ -285,7 +375,7 @@ Check(
         out var missingTierSource,
         out var missingTierReference) &&
     missingTier == "standard" &&
-    missingTierCost == 0.012325m &&
+    missingTierCost == 0.00866m &&
     missingTierWasInferred &&
     missingTierModel is null &&
     missingTierSource == "unknown" &&

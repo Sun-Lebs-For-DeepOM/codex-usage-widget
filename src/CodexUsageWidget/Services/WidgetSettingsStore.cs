@@ -8,13 +8,16 @@ public sealed class WidgetSettings
     public double? Left { get; init; }
     public double? Top { get; init; }
     public bool Topmost { get; init; } = true;
+    public bool GlassEffect { get; init; } = true;
     public double Width { get; init; } = 230;
     public double Height { get; init; } = 244;
     public double Opacity { get; init; } = 1.0;
+    public double TextOpacity { get; init; } = 1.0;
     public string AccentColor { get; init; } = "#10A37F";
     public string BackgroundColor { get; init; } = "#191C23";
     public string ViewStyle { get; init; } = "Ring";
     public bool ShowTokenUsage { get; init; } = true;
+    public bool ShowPrimaryQuota { get; init; } = true;
     public string TokenScope { get; init; } = "Today";
     public string TokenPeriod { get; init; } = "30Days";
     public DateTime? CustomStartDate { get; init; }
