@@ -6,6 +6,8 @@
 
 版本变化见 [CHANGELOG.md](./CHANGELOG.md)。
 
+最新更新（2026-09-30）：补齐 GPT-6.1 Sol、GPT-6 Sol、GPT-6 Luna 价格，新增 Astra Ultrafast 和 GPT-5.3 Codex Fast，修正长上下文价格与参考价推算。详见 [本次更新说明](./CHANGELOG.md#2026-09-30) 和 [金额估算说明](./docs/PRICE_ESTIMATION.md)。
+
 ## 当前功能示意
 
 以下图片由当前版本的真实 WPF 控件以合成数据渲染，使用 2 倍分辨率便于查看细节。额度、Token、金额及时间均为示例，不是用户使用记录；示例金额用于展示排版，不用于核验价格计算。

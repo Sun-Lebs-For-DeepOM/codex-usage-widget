@@ -241,6 +241,47 @@ void CheckPriceTable(
 }
 
 CheckPriceTable("uses GPT-6 Astra Standard prices", "gpt-6-astra", null, 10m, 1m, 12.5m, 50m);
+CheckPriceTable("uses GPT-6.1 Sol Standard prices", "gpt-6.1-sol", null, 2m, 0.1m, 2.5m, 10m);
+CheckPriceTable("uses GPT-6.1 Sol Fast prices", "gpt-6.1-sol", "fast", 4m, 0.2m, 5m, 20m);
+CheckPriceTable("uses GPT-6.1 Sol Flex prices", "gpt-6.1-sol", "flex", 1m, 0.05m, 1.25m, 5m);
+CheckPriceTable("uses GPT-6 Sol Standard prices", "gpt-6-sol", null, 2m, 0.2m, 2.5m, 10m);
+CheckPriceTable("uses GPT-6 Sol Fast prices", "gpt-6-sol", "fast", 4m, 0.4m, 5m, 20m);
+CheckPriceTable("uses GPT-6 Sol Flex prices", "gpt-6-sol", "flex", 1m, 0.1m, 1.25m, 5m);
+CheckPriceTable("uses GPT-6 Luna Standard prices", "gpt-6-luna", null, 0.1m, 0.01m, 0.125m, 0.5m);
+CheckPriceTable("uses GPT-6 Luna Fast prices", "gpt-6-luna", "fast", 0.2m, 0.02m, 0.25m, 1m);
+CheckPriceTable("uses GPT-6 Luna Flex prices", "gpt-6-luna", "flex", 0.05m, 0.005m, 0.0625m, 0.25m);
+CheckPriceTable("uses Astra Ultrafast prices", "gpt-6-astra", "ultrafast", 60m, 6m, 75m, 300m);
+
+foreach (var (model, rate) in new[] { ("gpt-6.1-sol", 2m), ("gpt-6-sol", 2m), ("gpt-6-luna", 0.1m) })
+{
+    foreach (var count in new long[] { 272_000, 272_001 })
+    {
+        var sample = new TokenUsageSample(DateTimeOffset.UtcNow, model, new TokenUsageTotals(count, 0, 0, 0, 0));
+        Check($"{model} context boundary {count}",
+            estimator.TryEstimate(sample, out var cost) &&
+            cost == count * rate * (count > 272_000 ? 2m : 1m) / 1_000_000m);
+    }
+}
+var ultraSample = new TokenUsageSample(DateTimeOffset.UtcNow, "gpt-6-astra",
+    new TokenUsageTotals(273_000, 100_000, 10_000, 10_000, 0), "ultrafast");
+Check("Ultrafast long context", estimator.TryEstimateServiceTier(ultraSample, out var ultraCost, out var ultraTier) && ultraCost == 26.76m && ultraTier == "ultrafast");
+Check("Ultrafast does not override Standard", estimator.TryEstimate(ultraSample, out var ultraStandard) && ultraStandard == 4.46m);
+Check("unpublished Ultrafast model uses marked Astra reference",
+    estimator.TryEstimateServiceTierFullCoverage(ultraSample with { Model = "gpt-6.1-sol" },
+        out _, out _, out var ultraInferred, out _, out _, out var ultraReference) &&
+    ultraInferred && ultraReference == "gpt-6-astra");
+var oldLongFast = ultraSample with { Model = "gpt-5.5", ServiceTier = "fast", Totals = new TokenUsageTotals(273_000, 0, 0, 0, 0) };
+Check("does not invent GPT-5.5 long Fast pricing", !estimator.TryEstimateServiceTier(oldLongFast, out _, out _));
+Check("unsupported long Fast keeps inferred coverage even with same configured model",
+    new TokenCostEstimator("gpt-5.5").TryEstimateServiceTierFullCoverage(oldLongFast,
+        out _, out _, out var longInferred, out _, out _, out var longReference) &&
+    longInferred && longReference == TokenCostEstimator.DefaultFallbackModel);
+Check("GPT-5.4 long Flex cache uses explicit 0.25",
+    estimator.TryEstimateServiceTier(ultraSample with { Model = "gpt-5.4", ServiceTier = "flex",
+        Totals = new TokenUsageTotals(300_000, 300_000, 0, 0, 0) }, out var cacheLong, out _) && cacheLong == 0.075m);
+Check("GPT-5.3 Codex Fast published pricing",
+    estimator.TryEstimateServiceTier(ultraSample with { Model = "gpt-5.3-codex", ServiceTier = "fast",
+        Totals = new TokenUsageTotals(100_000, 40_000, 0, 30_000, 10_000) }, out var codexFast, out _) && codexFast == 1.064m);
 CheckPriceTable("uses GPT-6 Astra Flex prices", "gpt-6-astra", "flex", 5m, 0.5m, 6.25m, 25m);
 CheckPriceTable("uses GPT-6 Astra Fast prices", "gpt-6-astra", "fast", 20m, 2m, 25m, 100m);
 CheckPriceTable("uses GPT-5.6 Sol Standard prices", "gpt-5.6-sol", null, 4m, 0.4m, 5m, 20m);

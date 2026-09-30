@@ -4,7 +4,7 @@ namespace CodexUsageWidget.Services;
 
 public sealed class TokenCostEstimator
 {
-    public const string PricingVerifiedDate = "2026-09-07";
+    public const string PricingVerifiedDate = "2026-09-30";
     public const string PricingSource = "https://developers.openai.com/api/docs/pricing";
     public const string DefaultFallbackModel = "gpt-5.6-terra";
 
@@ -15,6 +15,9 @@ public sealed class TokenCostEstimator
         new Dictionary<string, ModelPricing>(StringComparer.OrdinalIgnoreCase)
         {
             ["gpt-6-astra"] = new(10m, 1m, 12.5m, 50m, ModelFamily.CurrentFlagship),
+            ["gpt-6.1-sol"] = new(2m, 0.1m, 2.5m, 10m, ModelFamily.CurrentFlagship),
+            ["gpt-6-sol"] = new(2m, 0.2m, 2.5m, 10m, ModelFamily.CurrentFlagship),
+            ["gpt-6-luna"] = new(0.1m, 0.01m, 0.125m, 0.5m, ModelFamily.CurrentFlagship),
             ["gpt-5.6-sol"] = new(4m, 0.4m, 5m, 20m, ModelFamily.CurrentFlagship),
             ["gpt-5.6"] = new(4m, 0.4m, 5m, 20m, ModelFamily.CurrentFlagship),
             ["gpt-5.6-terra"] = new(2m, 0.2m, 2.5m, 12m, ModelFamily.CurrentFlagship),
@@ -32,14 +35,18 @@ public sealed class TokenCostEstimator
         new Dictionary<string, ModelPricing>(StringComparer.OrdinalIgnoreCase)
         {
             ["gpt-6-astra"] = new(20m, 2m, 25m, 100m, ModelFamily.CurrentFlagship),
+            ["gpt-6.1-sol"] = new(4m, 0.2m, 5m, 20m, ModelFamily.CurrentFlagship),
+            ["gpt-6-sol"] = new(4m, 0.4m, 5m, 20m, ModelFamily.CurrentFlagship),
+            ["gpt-6-luna"] = new(0.2m, 0.02m, 0.25m, 1m, ModelFamily.CurrentFlagship),
+            ["gpt-5.3-codex"] = new(3.5m, 0.35m, null, 28m, ModelFamily.Fixed),
             ["gpt-5.6-sol"] = new(8m, 0.8m, 10m, 40m, ModelFamily.CurrentFlagship),
             ["gpt-5.6"] = new(8m, 0.8m, 10m, 40m, ModelFamily.CurrentFlagship),
             ["gpt-5.6-terra"] = new(4m, 0.4m, 5m, 24m, ModelFamily.CurrentFlagship),
             ["gpt-5.6-luna"] = new(0.4m, 0.04m, 0.5m, 2.4m, ModelFamily.CurrentFlagship),
-            ["gpt-5.5"] = new(12.5m, 1.25m, null, 75m, ModelFamily.Gpt55),
-            ["gpt-5.5-2026-04-23"] = new(12.5m, 1.25m, null, 75m, ModelFamily.Gpt55),
-            ["gpt-5.4"] = new(5m, 0.5m, null, 30m, ModelFamily.Gpt54),
-            ["gpt-5.4-2026-03-05"] = new(5m, 0.5m, null, 30m, ModelFamily.Gpt54),
+            ["gpt-5.5"] = new(12.5m, 1.25m, null, 75m, ModelFamily.Gpt55, PublishedLongContext: false),
+            ["gpt-5.5-2026-04-23"] = new(12.5m, 1.25m, null, 75m, ModelFamily.Gpt55, PublishedLongContext: false),
+            ["gpt-5.4"] = new(5m, 0.5m, null, 30m, ModelFamily.Gpt54, PublishedLongContext: false),
+            ["gpt-5.4-2026-03-05"] = new(5m, 0.5m, null, 30m, ModelFamily.Gpt54, PublishedLongContext: false),
             ["gpt-5.4-mini"] = new(1.5m, 0.15m, null, 9m, ModelFamily.Fixed),
             ["gpt-5.4-mini-2026-03-17"] = new(1.5m, 0.15m, null, 9m, ModelFamily.Fixed)
         };
@@ -48,16 +55,25 @@ public sealed class TokenCostEstimator
         new Dictionary<string, ModelPricing>(StringComparer.OrdinalIgnoreCase)
         {
             ["gpt-6-astra"] = new(5m, 0.5m, 6.25m, 25m, ModelFamily.CurrentFlagship),
+            ["gpt-6.1-sol"] = new(1m, 0.05m, 1.25m, 5m, ModelFamily.CurrentFlagship),
+            ["gpt-6-sol"] = new(1m, 0.1m, 1.25m, 5m, ModelFamily.CurrentFlagship),
+            ["gpt-6-luna"] = new(0.05m, 0.005m, 0.0625m, 0.25m, ModelFamily.CurrentFlagship),
             ["gpt-5.6-sol"] = new(2m, 0.2m, 2.5m, 10m, ModelFamily.CurrentFlagship),
             ["gpt-5.6"] = new(2m, 0.2m, 2.5m, 10m, ModelFamily.CurrentFlagship),
             ["gpt-5.6-terra"] = new(1m, 0.1m, 1.25m, 6m, ModelFamily.CurrentFlagship),
             ["gpt-5.6-luna"] = new(0.1m, 0.01m, 0.125m, 0.6m, ModelFamily.CurrentFlagship),
             ["gpt-5.5"] = new(2.5m, 0.25m, null, 15m, ModelFamily.Gpt55),
             ["gpt-5.5-2026-04-23"] = new(2.5m, 0.25m, null, 15m, ModelFamily.Gpt55),
-            ["gpt-5.4"] = new(1.25m, 0.13m, null, 7.5m, ModelFamily.Gpt54),
-            ["gpt-5.4-2026-03-05"] = new(1.25m, 0.13m, null, 7.5m, ModelFamily.Gpt54),
+            ["gpt-5.4"] = new(1.25m, 0.13m, null, 7.5m, ModelFamily.Gpt54, LongContextCachedInput: 0.25m),
+            ["gpt-5.4-2026-03-05"] = new(1.25m, 0.13m, null, 7.5m, ModelFamily.Gpt54, LongContextCachedInput: 0.25m),
             ["gpt-5.4-mini"] = new(0.375m, 0.0375m, null, 2.25m, ModelFamily.Fixed),
             ["gpt-5.4-mini-2026-03-17"] = new(0.375m, 0.0375m, null, 2.25m, ModelFamily.Fixed)
+        };
+
+    private static readonly IReadOnlyDictionary<string, ModelPricing> UltrafastPricingByModel =
+        new Dictionary<string, ModelPricing>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["gpt-6-astra"] = new(60m, 6m, 75m, 300m, ModelFamily.CurrentFlagship)
         };
 
     private readonly string _fallbackModel;
@@ -173,7 +189,7 @@ public sealed class TokenCostEstimator
             return true;
         }
 
-        var fallbackModel = ResolveFallbackModel(normalizedTier);
+        var fallbackModel = ResolveFallbackModel(normalizedTier, usage);
         if (!TryGetServiceTierPricing(normalizedTier, fallbackModel, out var fallbackPricing) ||
             !CanEstimateUsage(usage, fallbackPricing))
         {
@@ -197,17 +213,19 @@ public sealed class TokenCostEstimator
             "default" or "standard" => "standard",
             "priority" or "fast" => "priority",
             "flex" => "flex",
+            "ultrafast" => "ultrafast",
             _ => null
         };
 
-    private string ResolveFallbackModel(string normalizedTier)
+    private string ResolveFallbackModel(string normalizedTier, TokenUsageTotals usage)
     {
-        if (TryGetServiceTierPricing(normalizedTier, _fallbackModel, out _))
+        if (TryGetServiceTierPricing(normalizedTier, _fallbackModel, out var pricing) &&
+            CanEstimateUsage(usage, pricing))
         {
             return _fallbackModel;
         }
 
-        return DefaultFallbackModel;
+        return normalizedTier == "ultrafast" ? "gpt-6-astra" : DefaultFallbackModel;
     }
 
     private static bool IsPublishedStandardModel(string? model) =>
@@ -224,6 +242,7 @@ public sealed class TokenCostEstimator
             "standard" => StandardPricingByModel,
             "priority" => FastPricingByModel,
             "flex" => FlexPricingByModel,
+            "ultrafast" => UltrafastPricingByModel,
             _ => null
         };
         if (catalog is not null && catalog.TryGetValue(model, out var matchedPricing))
@@ -237,7 +256,8 @@ public sealed class TokenCostEstimator
     }
 
     private static bool CanEstimateUsage(TokenUsageTotals usage, ModelPricing pricing) =>
-        usage.CacheWriteInputTokens == 0 || pricing.CacheWriteInput.HasValue;
+        (usage.CacheWriteInputTokens == 0 || pricing.CacheWriteInput.HasValue) &&
+        (usage.InputTokens <= LongContextThreshold || pricing.PublishedLongContext);
 
     private static decimal EstimateKnownUsage(TokenUsageTotals usage, ModelPricing pricing)
     {
@@ -255,7 +275,7 @@ public sealed class TokenCostEstimator
         if (usage.InputTokens > LongContextThreshold && pricing.Family != ModelFamily.Fixed)
         {
             inputRate *= 2m;
-            cachedRate *= 2m;
+            cachedRate = pricing.LongContextCachedInput ?? cachedRate * 2m;
             outputRate *= 1.5m;
             if (pricing.Family == ModelFamily.CurrentFlagship)
             {
@@ -291,7 +311,9 @@ public sealed class TokenCostEstimator
         decimal CachedInput,
         decimal? CacheWriteInput,
         decimal Output,
-        ModelFamily Family);
+        ModelFamily Family,
+        bool PublishedLongContext = true,
+        decimal? LongContextCachedInput = null);
 
     private enum ModelFamily
     {

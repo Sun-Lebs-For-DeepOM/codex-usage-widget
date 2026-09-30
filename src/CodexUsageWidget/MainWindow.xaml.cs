@@ -556,6 +556,7 @@ public partial class MainWindow : Window
             "standard" => "Standard",
             "priority" => "Fast",
             "flex" => "Flex",
+            "ultrafast" => "Ultrafast",
             _ => "档位估算"
         };
     }
